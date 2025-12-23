@@ -62,7 +62,7 @@ def test_get_leagues(db_session):
 def test_get_teams(db_session):
     """Tests that the count of teams in the database is what is expected"""
     teams = crud.get_teams(db_session, skip=0, limit=10000, min_last_changed_date=test_date)
-    assert len(teams) == 20
+    assert len(teams) == 52
 
 def test_get_teams_for_one_league(db_session):
     """Tests that the count of teams in the database is what is expected"""
@@ -82,7 +82,7 @@ def test_get_player_count(db_session):
 
 def test_get_team_count(db_session):
     team_count = crud.get_team_count(db_session)
-    assert team_count == 20
+    assert team_count == 52
 
 def test_get_league_count(db_session):
     league_count = crud.get_league_count(db_session)

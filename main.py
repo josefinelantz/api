@@ -108,17 +108,43 @@ def read_player(player_id: int, db: Session = Depends(get_db)):
     return player
 
 
-@app.get("/v0/performances/", response_model=list[schemas.Performance])
-def read_performances(skip: int = 0, limit: int = 100, minimum_last_changed_date: date = None,
-    db: Session = Depends(get_db)):
-    performances = crud.get_performances(db, 
-                                         skip=skip, 
-                                         limit=limit, 
-                                         min_last_changed_date=minimum_last_changed_date)
+@app.get(
+    "/v0/performances/",
+    response_model=list[schemas.Performance],
+    summary="Get all the weekly performances that meet all the parameters you sent with your request",
+    description="""Use this endpoint to get lists of weekly performances by players in the SWC. You us the skip and limit to perform pagination of the API. Don't use the Performance ID for counting or logic, because that is an internal ID and is not guaranteed to be sequential""",
+    response_description="A list of weekly scoring performances. It may be by multiple players.",
+    operation_id="v0_get_performances",
+    tags=["scoring"],
+)
+def read_performances(
+    skip: int = Query(
+        0, description="The number of items to skip at the beginning of API call."
+    ),
+    limit: int = Query(
+        100, description="The number of records to return after the skipped records."
+    ),
+    minimum_last_changed_date: date = Query(
+        None,
+        description="The minimum data of change that you want to return records. Exclude any records changed before this.",
+    ),
+    db: Session = Depends(get_db),
+):
+    performances = crud.get_performances(
+        db, skip=skip, limit=limit, min_last_changed_date=minimum_last_changed_date
+    )
     return performances
 
 
-@app.get("/v0/leagues/{league_id}", response_model=schemas.League)
+@app.get(
+    "/v0/leagues/{league_id}",
+    response_model=schemas.League,
+    summary="Get one league by league id",
+    description="""Use this endpoint to get a single league that matches the league ID provided by the user.""",
+    response_description="An SWC league",
+    operation_id="v0_get_league_by_league_id",
+    tags=["membership"],
+)
 def read_league(league_id: int, db: Session = Depends(get_db)):
     league = crud.get_league(db, league_id=league_id)
     if league is None:
@@ -128,13 +154,29 @@ def read_league(league_id: int, db: Session = Depends(get_db)):
 
 @app.get(
     "/v0/leagues/",
-    response_model=list[schemas.League])
+    response_model=list[schemas.League],
+    summary="Get all the SWC fantasy football leagues that match the parameters you send",
+    description="""Use this endpoint to get lists of SWC fantasy football leagues. You us the skip and limit to perform pagination of the API. League name is not guaranteed to be unique. Don't use the League ID for counting or logic, because that is an internal ID and is not guaranteed to be sequential""",
+    response_description="A list of leagues on the SWC fantasy football website.",
+    operation_id="v0_get_leagues",
+    tags=["membership"],
+)
 def read_leagues(
-    skip: int = 0, 
-    limit: int = 100, 
-    minimum_last_changed_date: date = None,
-    league_name: str = None,
-    db: Session = Depends(get_db)):
+    skip: int = Query(
+        0, description="The number of items to skip at the beginning of API call."
+    ),
+    limit: int = Query(
+        100, description="The number of records to return after the skipped records."
+    ),
+    minimum_last_changed_date: date = Query(
+        None,
+        description="The minimum data of change that you want to return records. Exclude any records changed before this.",
+    ),
+    league_name: str = Query(
+        None, description="Name of the leagues to return. Not unique in the SWC."
+    ),
+    db: Session = Depends(get_db),
+):
     leagues = crud.get_leagues(
         db,
         skip=skip,
@@ -147,13 +189,31 @@ def read_leagues(
 
 @app.get(
     "/v0/teams/",
-    response_model=list[schemas.Team])
+    response_model=list[schemas.Team],
+    summary="Get all the SWC fantasy football teams that match the parameters you send",
+    description="""Use this endpoint to get lists of SWC fantasy football teams. You us the skip and limit to perform pagination of the API. Team name may not be unique. If you get the Team ID from another query you can match it with the Team ID from this query.  Don't use the Team ID for counting or logic.""",
+    response_description="A list of teams on the SWC fantasy football website.",
+    operation_id="v0_get_teams",
+    tags=["membership"],
+)
 def read_teams(
-    skip: int = 0,
-    limit: int = 100, 
-    minimum_last_changed_date: date = None,
-    team_name: str = None,
-    league_id: int = None, 
+    skip: int = Query(
+        0, description="The number of items to skip at the beginning of API call."
+    ),
+    limit: int = Query(
+        100, description="The number of records to return after the skipped records."
+    ),
+    minimum_last_changed_date: date = Query(
+        None,
+        description="The minimum data of change that you want to return records. Exclude any records changed before this.",
+    ),
+    team_name: str = Query(
+        None,
+        description="Name of the teams to return. Not unique across SWC, but is unique inside a league.",
+    ),
+    league_id: int = Query(
+        None, description="League ID of the teams to return. Unique in SWC."
+    ),
     db: Session = Depends(get_db),
 ):
     teams = crud.get_teams(
@@ -168,11 +228,51 @@ def read_teams(
 
 
 @app.get(
-    "/v0/counts/", response_model=schemas.Counts)
+    "/v0/counts/",
+    response_model=schemas.Counts,
+    summary="Get counts of the number of leagues, teams, and players in the SWC fantasy football",
+    description="""Use this endpoint to count the number of leagues, teams, and players in the SWC fantasy football. Use in combination with skip and limit in v0_get leagues, v0_get_teams, or v0_get_players. Use this endpoint to get counts instead of making calls to the other APIs.""",
+    response_description="A list of teams on the SWC fantasy football website.",
+    operation_id="v0_get_counts",
+    tags=["analytics"],
+)
+
 def get_count(db: Session = Depends(get_db)):
     counts = schemas.Counts(
         league_count=crud.get_league_count(db),
         team_count=crud.get_team_count(db),
         player_count=crud.get_player_count(db),
+        week_count=crud.get_week_count(db), #v0.2
     )
     return counts
+
+#v0.2
+@app.get(
+    "/v0/weeks/",
+    response_model=list[schemas.Week],
+    summary="Get all the SWC weeks that meet all the parameters you sent with your request",
+    description="""Use this endpoint to get a list of SWC weeks. You can use the parameters to filter down the weeks in the list. You use the skip and limit to perform pagination of the API.""",
+    response_description="A list of weeks in SWC fantasy football.",
+    operation_id="v0_get_weeks",
+    tags=["general"],
+)
+def read_weeks(
+    skip: int = Query(
+        0, description="The number of items to skip at the beginning of API call."
+    ),
+    limit: int = Query(
+        100, description="The number of records to return after the skipped records."
+    ),
+    minimum_last_changed_date: date = Query(
+        None,
+        description="The minimum data of change that you want to return records. Exclude any records changed before this.",
+    ),
+    db: Session = Depends(get_db),
+):
+    weeks = crud.get_weeks(
+        db,
+        skip=skip,
+        limit=limit,
+        min_last_changed_date=minimum_last_changed_date,
+    )
+    return weeks
