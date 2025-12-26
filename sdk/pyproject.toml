@@ -24,4 +24,13 @@ dependencies = [
     "logging>=0.4.9.6",
     "pydantic>=2.12.5",
     "pyarrow>=22.0.0",
+    "pandas>=2.3.3",
 ]
+
+[dependency-groups]
+dev = [
+    "swcpy",
+]
+
+[tool.uv.sources]
+swcpy = { workspace = true }
